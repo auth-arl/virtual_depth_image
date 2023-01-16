@@ -1,0 +1,10 @@
+PyOpenGL==3.1.5
+glfw===2.5.0
+pyrr==0.10.3
+numpy-stl==2.16.3
+lxml==4.9.0
+opencv-python==4.5.5.62
+transforms3d==0.3.1
+numpy
+# PyYAML
+pyyaml

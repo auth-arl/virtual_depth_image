@@ -1,0 +1,10 @@
+
+# example of Virtual Depth Camera Node parameters.
+vdc_node:
+  ros__parameters:
+    mode: "MASK" # "DEPTH
+    viz_enabled:  False
+    camera_prefix:  "D415"            # Camera Prefix in topic path
+    camera_frame:   "camera_conveyor" # camera frame TF name
+    downscale_factor: 2.0   # downscales the image. NewSize = OriginalSize/downscale_factor
+    scaling: 1.0            # "inflates" the mask to have better coverage. keep it between [0.98, 1.0]
