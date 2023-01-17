@@ -7,9 +7,8 @@ The VDC can be used to
 * generate **Occlusion Masks**, informing the vision system which pixels on an RGB or Depth image are occluded by the robot's geometry. 
   * This approach is suitable for top-down application, where objects or locations of interest **are expected to be behind the robot**, not in between the robot and the camera. 
   * Each pixel gets the valie {0, 255} _(= {False, True})_ declaring whther the pixel is occluded by the robot or not.   
-* generate a **Virtual Depth Image,** _(<span style="color:red"> NOT FULLY IMPLEMENTED,</span> see Troubl. Notes)_ in other words, an image of actual depth values as they would be measured by the RGBD camera.
-  * This image can not only inform the vision system on robot occlusions, but also determine whether the robot is between the target of interest and the camera or not. 
-  * Each pixel get a value of range [0, 255], which determines the ditance of the pixel from the camera. 
+* generate a **Virtual Depth Image,** in other words, an image of actual depth values as they would be measured by the RGBD camera.
+  * This image can not only inform the vision system on robot occlusions, but also determine whether the robot is between the target of interest and the camera or not.
   * The VD Image can also be used to generate Point Cloud of the robot, and be used for other applications e.g. full body distance calculation   
 
 ## Pipeline Summary
@@ -17,7 +16,6 @@ The VDC creates a minimal graphics pipeline, where it re-creates the robotic arm
 the collision STL files from robot_description. The image is rendered at a camera view same as that of the 
 actual RGBD camera of the vision system. When superimposing the virtual image and an actual RGB (or D) image, 
 the virtual image should properly cover the robot geometry. 
-
 
 
 ![Generated Boolean Mask](docs/mask.png)
@@ -44,10 +42,6 @@ Install the python dependencies, and you are good to go
 
 ## Dependencies
 * PyOpenGL _(installed with pip)_
-* `camera-utils`  
-* `arl_Description` _(runtime)_
-* `camera_robot_calibration` _(runtime)_
-
 
 ## How to Run
 ### Available Launch Files
@@ -68,18 +62,12 @@ _camera view and virtual mask composite image (available only in `online_demo.la
 
 
 ### Launch Steps
-1. source your venv and the ros `./install/setup.bash`
-2. Launch calibration publisher and `arl_decription`
-```
-    ros2 launch camera_robot_calibration publish_static_tfs.launch.py calibration_files:=<YOUR_FILE.yaml> 
-    ros2 launch arl_description display.launch.py id:=robotic_platform_ur5_right_epick_40
-```
-3. launch the `camera_node` of choice _(**Demo launch already include this node**)_
-4. launch the vdc node. **Make sure that camera_prefix is set correctly** 
+
+1. launch the vdc node. **Make sure that camera_prefix is set correctly** 
     ```
     ros2 launch virtual_depth_camera occlusion_mask.launch.py
     ```
-5. Output message will confirm the `robot_description` and `CameraInfo` are acquired succesfully, and a list of the robot links will be printed. _(In case anything is missing see troubleshooting section)_
+2. Output message will confirm the `robot_description` and `CameraInfo` are acquired succesfully, and a list of the robot links will be printed. _(In case anything is missing see troubleshooting section)_
    1. If the node proceeds to run succesfully, that means that `camera_frame` is also acquired, and from there on no further messages will be printed. 
   
   ```commandline

@@ -14,7 +14,6 @@ from tf2_ros.transform_listener import TransformListener
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 
 from proghrc_msgs.msg import SimpleCameraInfo
-from proghrc_msgs.msg import NodeHealth
 
 from rcl_interfaces.msg import Parameter, ParameterType
 from rcl_interfaces.msg import ParameterValue
@@ -23,7 +22,9 @@ from rcl_interfaces.msg import ParameterDescriptor
 from rclpy.qos import qos_profile_sensor_data
 
 import time
+
 from sensor_msgs.msg import Image
+from sensor_msgs.msg import CameraInfo
 
 
 
@@ -48,11 +49,17 @@ class VirtualDepthCamera_Node(Node):
     def __init__(self):
         super().__init__('Virtual_Depth_Node')
 
+        self.declare_parameter("camera_info_topic", "/camera/color/info")
+        self.declare_parameter("camera_color_topic", "/camera/color/image_raw")
+        self.declare_parameter("mask_topic", "/camera/mask")
+        self.declare_parameter("composite_topic", "/camera/composite")
+
         self.declare_parameter("mode", "MASK")
         self.declare_parameter("viz_enabled", False)
         self.declare_parameter("camera_prefix", "")
         self.declare_parameter("scaling", 1.0)
-        # self.declare_parameter("camera_frame", "camera_conveyor")
+        self.declare_parameter("camera_frame", "camera")
+        self.declare_parameter("fps", 30.0)
         self.declare_parameter("downscale_factor", 1.0,
                                ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE,
                                                    description="mask will have downsized size of original_size/downsize_factor"))
@@ -60,8 +67,14 @@ class VirtualDepthCamera_Node(Node):
         self.virtualDepthCamera = None # object will be constructed by Init_callback when params are retrieved from other nodes.
 
         # VDC params:
-        # self.camera_frame   =  self.get_parameter("camera_frame").value
-        self.camera_frame = None
+        self.camera_frame   =  self.get_parameter("camera_frame").value
+
+        self.camera_info_topic   =  self.get_parameter("camera_info_topic").value
+        self.mask_topic   =  self.get_parameter("mask_topic").value
+        self.camera_color_topic   =  self.get_parameter("camera_color_topic").value
+        self.composite_topic   =  self.get_parameter("composite_topic").value
+
+        self.fps = self.get_parameter("fps").value
 
         self.camera_info_msg    = None # to be initialized by  "camera_info_callback" subscriber callback
         self.robot_description  = None # to be retrieved by service client from robot_state_publisher node parameters
@@ -78,13 +91,13 @@ class VirtualDepthCamera_Node(Node):
 
         qos = qos_profile_sensor_data
         # qos =  5
-        self.camera_info_sub    = self.create_subscription(SimpleCameraInfo, camera_prefix + "camera/info", self.camera_info_callback, qos_profile=qos)
-        self.mask_image_pub     = self.create_publisher(Image, camera_prefix + "camera/occlusion_mask", qos_profile=5)
+        self.camera_info_sub    = self.create_subscription(CameraInfo, self.camera_info_topic, self.camera_info_callback, qos_profile=qos)
+        self.mask_image_pub     = self.create_publisher(Image, self.mask_topic, qos_profile=5)
 
         viz_enabled = self.get_parameter("viz_enabled").value
         if viz_enabled:
-            self.color_sub = self.create_subscription(Image, camera_prefix + "camera/color", self.viz_callback, qos_profile=qos)
-            self.composite_pub = self.create_publisher(Image, camera_prefix + "camera/virtual/composite", qos_profile=5)
+            self.color_sub = self.create_subscription(Image, self.camera_color_topic, self.viz_callback, qos_profile=qos)
+            self.composite_pub = self.create_publisher(Image, self.composite_topic, qos_profile=5)
 
         #  this service client retrieces robot_description param from robot_state_publisher.
         self.cli = self.create_client(GetParameters, 'robot_state_publisher/get_parameters')
@@ -106,12 +119,6 @@ class VirtualDepthCamera_Node(Node):
         self.camera_info_ready_FLAG = False
         self.robot_description_ready_FLAG = False
         self.init_steps_counter = 0 #
-
-        # Node health publisher
-        self.h_count = 0
-        self.health_publisher = self.create_publisher(NodeHealth, '/proghrc/node_health',10)   
-        self.alive_msg = NodeHealth()
-        self.alive_msg.node_name = self.get_name()   
 
     def camera_info_callback(self, msg: SimpleCameraInfo):
         # When the camera info is retrieved, this subscriber callback self-destructs
@@ -151,26 +158,24 @@ class VirtualDepthCamera_Node(Node):
             ur_desc_folder_path = get_package_share_directory('arl_description')
 
             downscale_factor = self.get_parameter("downscale_factor").value
-            camera_params_ = [self.camera_info_msg.fx/downscale_factor,
-                              self.camera_info_msg.fy/downscale_factor,
-                              self.camera_info_msg.cx/downscale_factor,
-                              self.camera_info_msg.cy/downscale_factor]
+            camera_params_ = [self.camera_info_msg.K[0]/downscale_factor,
+                              self.camera_info_msg.K[4]/downscale_factor,
+                              self.camera_info_msg.K[2]/downscale_factor,
+                              self.camera_info_msg.K[5]/downscale_factor]
             self.virtualDepthCamera = VirtualDepthCamera(self.get_parameter("mode").value,
                                                          self.robot_description,
                                                          ur_desc_folder_path,
                                                          camera_params_,
-                                                         int(self.camera_info_msg.color_width/downscale_factor),
-                                                         int(self.camera_info_msg.color_height/downscale_factor),
+                                                         int(self.camera_info_msg.width/downscale_factor),
+                                                         int(self.camera_info_msg.height/downscale_factor),
                                                          self.get_parameter("scaling").value)
             self.print_robot_links()
             print("-------- Virtual Depth Camera Start --------------")
             print("---  MODE : ",self.get_parameter("mode").value,"  ---")
-            self.camera_frame = self.camera_info_msg.frame_id
-
 
             # create main timer with the actual callback, and destroy the init_callback timer
             # self.main_timer.timer_period_ns = Duration(1/self.camera_info_msg.fps).nanoseconds
-            self.create_timer(1/self.camera_info_msg.fps, self.run_callback)
+            self.create_timer(1/self.fps, self.run_callback)
             self.destroy_timer(self.init_timer)
 
         else:
@@ -226,12 +231,6 @@ class VirtualDepthCamera_Node(Node):
                 exit(-1)
             # et_ = self.get_clock().now()
 
-            # print((et_.nanoseconds-st_.nanoseconds)/1000000.0)
-            # print(self.main_timer.time_until_next_call()/1000000.0)
-
-            # cv2.imshow("virtual", virtual_image)
-            # cv2.waitKey(5)
-            self.sendAlive()
            
     def print_initialization_progress(self, text_msg):
         if self.init_steps_counter == 0:
@@ -283,13 +282,6 @@ class VirtualDepthCamera_Node(Node):
             self.virtualDepthCamera.destroy_virtual_camera()
         super().destroy_node()
 
-    # publish send alive every 2 sec 
-    def sendAlive(self):
-        if( self.h_count == 2 * self.camera_info_msg.fps ):            
-            self.alive_msg.stamp = self.get_clock().now().to_msg()
-            self.health_publisher.publish(self.alive_msg)
-            self.h_count = 0
-        self.h_count = self.h_count + 1
 
 
 
