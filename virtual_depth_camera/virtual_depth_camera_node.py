@@ -56,7 +56,6 @@ class VirtualDepthCamera_Node(Node):
 
         self.declare_parameter("mode", "MASK")
         self.declare_parameter("viz_enabled", False)
-        self.declare_parameter("camera_prefix", "")
         self.declare_parameter("scaling", 1.0)
         self.declare_parameter("camera_frame", "camera")
         self.declare_parameter("fps", 30.0)
@@ -86,7 +85,6 @@ class VirtualDepthCamera_Node(Node):
         self.cv_bridge = cv_bridge.CvBridge()
 
         # camera prefix.
-        camera_prefix = self.get_parameter("camera_prefix").value
         self.mode = self.get_parameter("mode").value
 
         qos = qos_profile_sensor_data

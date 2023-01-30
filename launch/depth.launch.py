@@ -11,17 +11,21 @@ def generate_launch_description():
     vdc_node = Node(
         package='virtual_depth_camera',
         executable='virtual_depth_camera_node',
-        name='vdc_ht_node',
+        name='vdc_ope_node',
         emulate_tty=True,
         output_format='[VIRTUAL_DEPTH_CAMERA] {line}',
         output='screen',
         parameters=[{
-            "mode": "MASK",         # default: MASK.  Choices: "DEPTH", "MASK"
-            "viz_enabled": True,
-            "camera_prefix": "ht_",    # CAMERA_PREFIX of camera_node topic that VDC emulates
+            "mode": "DEPTH",         # default: MASK.  Choices: "DEPTH", "MASK"
+            "viz_enabled": False,
+            "camera_prefix": "ope_",    # CAMERA_PREFIX of camera_node topic that VDC emulates
             "camera_frame": "camera_conveyor",  # camera_frame, as it is pubished by the calibration node
             "downscale_factor": 2.0,    # downscales the image, to increase performamce (e.g. 2.0). Any float will do.
             "scaling": 1.0,             # "inflates: the mask to have better coverage of the robot. keep it between [0.98, 1.0]
+            "camera_info_topic":"/camera/color/info",
+            "camera_color_topic":"/camera/color/image_raw",
+            "mask_topic":"/camera/mask",
+            "composite_topic": "/camera/composite",
         }]
     )
 
