@@ -22,7 +22,7 @@ the virtual image should properly cover the robot geometry.
 ![Demo Composite Image](docs/composite.png)
 
 In its initialization, the VDC: 
-* Acquires from the `{$camera_prefix_}camera/info` topic the camera intrisinc parameters to emulate the actual RGBD camera fov.
+* Acquires from the camerainfo  topic the camera intrisinc parameters to emulate the actual RGBD camera fov.
 * Requests from the `robot_state_publisher` node the `robot_description` parsed XML. **From that it automatically traverses the XML tree** to acquire
   * **All the collision STL mesh files** to be drawn in the image. (all entries that do not contain STLs are ignored)
   * the **<tf_link> names**, in the TF tree 
@@ -31,10 +31,6 @@ In its initialization, the VDC:
 In its run-loop, the VDC 
 * Acquares each `robot_link` TF wrt to the  `camera_frame` TF. Camera frame is broadcased  by the `publishTFs_node` of the calibration package.
 * Publishes the mask or virtual depth image at topic `{$camera_prefix_}camera/occlusion_mask` 
-
-
-
-
 
 ## Installation
 Install the python dependencies, and you are good to go 
@@ -63,9 +59,9 @@ _camera view and virtual mask composite image (available only in `online_demo.la
 
 ### Launch Steps
 
-1. launch the vdc node. **Make sure that camera_prefix is set correctly** 
+1. launch the vdc node.
     ```
-    ros2 launch virtual_depth_camera occlusion_mask.launch.py
+    ros2 launch virtual_depth_camera depth.launch.py
     ```
 2. Output message will confirm the `robot_description` and `CameraInfo` are acquired succesfully, and a list of the robot links will be printed. _(In case anything is missing see troubleshooting section)_
    1. If the node proceeds to run succesfully, that means that `camera_frame` is also acquired, and from there on no further messages will be printed. 
@@ -107,6 +103,10 @@ Here are the configuration ROS2 parameters that can be defined either in a dict(
             "camera_frame": "camera_conveyor",  # camera_frame, as it is pubished by the calibration node
             "downscale_factor": 1.0,    # downscales the image, to increase performamce (e.g. 2.0). Any float will do.
             "scaling": 1.0,             # "inflates: the mask to have better coverage of the robot. keep it between [0.98, 1.0]
+            "camera_info_topic":"/camera/color/info",
+            "camera_color_topic":"/camera/color/image_raw",
+            "mask_topic":"/camera/mask",
+            "composite_topic": "/camera/composite",
         }]
 ```
 * Generated mask (or virtual depth) is published in same `<$prefix_>_camera/virtual/` topic namespace as original camera.
@@ -120,37 +120,12 @@ Here are the configuration ROS2 parameters that can be defined either in a dict(
 parameter, via a built-in ROS2 service. Then it traverses the XML file via the `lxml.etree.path` utility. **This is an easy to break** part of the system, as the paths are fixed, and a different URDF template might bong it up.
 
 
-### The "Fix-Transform" and camera frame.  
-An additional transform is included in the pipeline, that rotates the camera-view by 180 deg around the y-axis. this 
-is important, as the OpenGL Camera Space -axis **points away** from the target ([see here](http://www.songho.ca/opengl/gl_projectionmatrix.html)), while our actual camera_frame point 
-towards it. By rotating the camera frame (in the pipeline) we are able to match those two cameras and actually render 
-the image properly. This is the pin-hole model convention, and although this may not be the most elegant of solutions, at least it works. 
 
  
 
 
 
-### Launching Troubleshooting
-* In case the camera_frame is not published, **or defined incorrectly** in the parameters, vdc will poll for the TF links, until they are retrieved correctly. Make sure that `camera_frame` vdc param is the same with the published camera frame.  
-    ```commandline
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_base_link_inertia
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_shoulder_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_upper_arm_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_forearm_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_wrist_1_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_wrist_2_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: right_ur_wrist_3_link
-    [VIRTUAL_DEPTH_CAMERA] FAILED TO RETRIEVE TF OF LINK: epick_link
-    ```
 
-
-* In case the robot description is not launched, or the robot_publisher service is anavailable, the VDC waits for the service indefinetly.
-    ```commandline
-    Starting Virtual Depth Camera Node: 
-    [VIRTUAL_DEPTH_CAMERA] [INFO] [1656077128.195355408] [vdc_Dummy_node]: Waiting for robot_state_publisher/get_parameters Service. Make sure that arl_description is launched and running normally
-    [VIRTUAL_DEPTH_CAMERA] [INFO] [1656077128.195355408] [vdc_Dummy_node]: Waiting for robot_state_publisher/get_parameters Service. Make sure that arl_description is launched and running normally
-    ```
-   
 
 
 
