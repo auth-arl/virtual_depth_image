@@ -58,6 +58,7 @@ class VirtualDepthCamera_Node(Node):
         self.declare_parameter("viz_enabled", False)
         self.declare_parameter("scaling", 1.0)
         self.declare_parameter("camera_frame", "camera")
+        self.declare_parameter("description_service", "'robot_state_publisher/get_parameters")
         self.declare_parameter("fps", 30.0)
         self.declare_parameter("downscale_factor", 1.0,
                                ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE,
@@ -72,7 +73,7 @@ class VirtualDepthCamera_Node(Node):
         self.mask_topic   =  self.get_parameter("mask_topic").value
         self.camera_color_topic   =  self.get_parameter("camera_color_topic").value
         self.composite_topic   =  self.get_parameter("composite_topic").value
-
+        self.description_service   =  self.get_parameter("description_service").value
         self.fps = self.get_parameter("fps").value
 
         self.camera_info_msg    = None # to be initialized by  "camera_info_callback" subscriber callback
@@ -98,10 +99,10 @@ class VirtualDepthCamera_Node(Node):
             self.composite_pub = self.create_publisher(Image, self.composite_topic, qos_profile=5)
 
         #  this service client retrieces robot_description param from robot_state_publisher.
-        self.cli = self.create_client(GetParameters, 'robot_state_publisher/get_parameters')
+        self.cli = self.create_client(GetParameters, self.description_service)
         while not self.cli.wait_for_service(timeout_sec=1.0):
             self.get_logger().info(
-                'Waiting for ''robot_state_publisher/get_parameters'' Service. Make sure that arl_description is launched and running normally')
+                'Waiting for '+ self.description_service + ' Service. Make sure that arl_description is launched and running normally')
         
         time.sleep(1)
         self.req = GetParameters.Request()

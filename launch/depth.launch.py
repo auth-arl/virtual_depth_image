@@ -26,6 +26,7 @@ def generate_launch_description():
             "camera_color_topic":"/camera/color/image_raw",
             "mask_topic":"/camera/mask",
             "composite_topic": "/camera/composite",
+            "description_service": "'robot_state_publisher/get_parameters"
         }]
     )
 
