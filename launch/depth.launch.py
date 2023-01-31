@@ -17,7 +17,7 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             "mode": "DEPTH",         # default: MASK.  Choices: "DEPTH", "MASK"
-            "viz_enabled": False,
+            "viz_enabled": True,
             "camera_prefix": "ope_",    # CAMERA_PREFIX of camera_node topic that VDC emulates
             "camera_frame": "camera_color_optical_frame",  # camera_frame, as it is pubished by the calibration node
             "downscale_factor": 2.0,    # downscales the image, to increase performamce (e.g. 2.0). Any float will do.

@@ -273,7 +273,7 @@ class VirtualDepthCamera_Node(Node):
         cv_composite = cv2.addWeighted(cv_image, 1.0, mask_red, 0.5, 0)
 
 
-        self.composite_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_composite,"bgr8"))
+        self.composite_pub.publish(self.cv_bridge.cv2_to_imgmsg(cv_composite,"rgb8"))
 
 
 
