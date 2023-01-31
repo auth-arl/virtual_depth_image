@@ -13,7 +13,6 @@ from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
 from tf2_ros import LookupException, ConnectivityException, ExtrapolationException
 
-from proghrc_msgs.msg import SimpleCameraInfo
 
 from rcl_interfaces.msg import Parameter, ParameterType
 from rcl_interfaces.msg import ParameterValue
@@ -49,7 +48,7 @@ class VirtualDepthCamera_Node(Node):
     def __init__(self):
         super().__init__('Virtual_Depth_Node')
 
-        self.declare_parameter("camera_info_topic", "/camera/color/info")
+        self.declare_parameter("camera_info_topic", "/camera/color/camera_info")
         self.declare_parameter("camera_color_topic", "/camera/color/image_raw")
         self.declare_parameter("mask_topic", "/camera/mask")
         self.declare_parameter("composite_topic", "/camera/composite")
@@ -58,11 +57,12 @@ class VirtualDepthCamera_Node(Node):
         self.declare_parameter("viz_enabled", False)
         self.declare_parameter("scaling", 1.0)
         self.declare_parameter("camera_frame", "camera")
-        self.declare_parameter("description_service", "'robot_state_publisher/get_parameters")
+        self.declare_parameter("description_service", "robot_state_publisher/get_parameters")
         self.declare_parameter("fps", 30.0)
         self.declare_parameter("downscale_factor", 1.0,
                                ParameterDescriptor(type=ParameterType.PARAMETER_DOUBLE,
                                                    description="mask will have downsized size of original_size/downsize_factor"))
+        self.declare_parameter("description_package_name", "ur_description")
         # Virtual Depth Camera
         self.virtualDepthCamera = None # object will be constructed by Init_callback when params are retrieved from other nodes.
 
@@ -87,6 +87,7 @@ class VirtualDepthCamera_Node(Node):
 
         # camera prefix.
         self.mode = self.get_parameter("mode").value
+        self.description_package_name = self.get_parameter("description_package_name").value
 
         qos = qos_profile_sensor_data
         # qos =  5
@@ -119,7 +120,7 @@ class VirtualDepthCamera_Node(Node):
         self.robot_description_ready_FLAG = False
         self.init_steps_counter = 0 #
 
-    def camera_info_callback(self, msg: SimpleCameraInfo):
+    def camera_info_callback(self, msg: CameraInfo):
         # When the camera info is retrieved, this subscriber callback self-destructs
         self.camera_info_msg = msg
         self.camera_info_ready_FLAG = True
@@ -154,16 +155,17 @@ class VirtualDepthCamera_Node(Node):
 
             # construct VirtualDepthCamera obj
             from ament_index_python.packages import get_package_share_directory
-            ur_desc_folder_path = get_package_share_directory('arl_description')
+            ur_desc_folder_path = get_package_share_directory(self.description_package_name)
 
             downscale_factor = self.get_parameter("downscale_factor").value
-            camera_params_ = [self.camera_info_msg.K[0]/downscale_factor,
-                              self.camera_info_msg.K[4]/downscale_factor,
-                              self.camera_info_msg.K[2]/downscale_factor,
-                              self.camera_info_msg.K[5]/downscale_factor]
+            camera_params_ = [self.camera_info_msg.k[0]/downscale_factor,
+                              self.camera_info_msg.k[4]/downscale_factor,
+                              self.camera_info_msg.k[2]/downscale_factor,
+                              self.camera_info_msg.k[5]/downscale_factor]
             self.virtualDepthCamera = VirtualDepthCamera(self.get_parameter("mode").value,
                                                          self.robot_description,
                                                          ur_desc_folder_path,
+                                                         self.description_package_name,
                                                          camera_params_,
                                                          int(self.camera_info_msg.width/downscale_factor),
                                                          int(self.camera_info_msg.height/downscale_factor),
@@ -194,7 +196,7 @@ class VirtualDepthCamera_Node(Node):
         
         # st_ = self.get_clock().now()
         if self.virtualDepthCamera is not None:
-            timeout_ = Duration(seconds=0.01, nanoseconds=0)
+            timeout_ = Duration(seconds=0.1, nanoseconds=0)
             robot_joints_tf_list = []
             for link_ in self.virtualDepthCamera.get_tf_link_names():
                 try:

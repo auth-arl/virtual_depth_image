@@ -88,7 +88,7 @@ class VirtualDepthCamera:
 
     """
 
-    def __init__(self, mode, urdf_xml_string, ur_desc_folder_path, camera_params, width=1280, height=720, scaling=1.0):
+    def __init__(self, mode, urdf_xml_string, ur_desc_folder_path,package_name, camera_params, width=1280, height=720, scaling=1.0):
         """
         Initialises OpenGL, laods all the graphic Objects from the collision STL file
 
@@ -98,7 +98,7 @@ class VirtualDepthCamera:
         :param urdf_xml_string:     The compiled XML URDF, acquired via service from robot_state_publisher.
         :param ur_desc_folder_path: The arl_descrpiton package containing the description.
                                     Replaces the "//package:" tag in the urdf filepath of mesh files.
-                                    `ur_desc_folder_path = get_package_share_directory('arl_description')` would suffice
+                                    `ur_desc_folder_path = get_package_share_directory('ur_description')` would suffice
         :param camera_params:  (fx,fy,cx,cy) tuple
         :param width:    desired image width
         :param height:   desired image height
@@ -109,7 +109,7 @@ class VirtualDepthCamera:
         self.width = width
         self.height = height
 
-        self.config_dict = self.urdf_traverse(urdf_xml_string, ur_desc_folder_path, "all")
+        self.config_dict = self.urdf_traverse(urdf_xml_string, ur_desc_folder_path,package_name, "all")
 
         # Create OpenGL context, via hidden glfw window
         if not glfw.init():
@@ -148,6 +148,8 @@ class VirtualDepthCamera:
         self.origin_loc = glGetUniformLocation(shader, "origin")
         self.fix_tf_loc = glGetUniformLocation(shader, "fix_tf")
         self.projection_loc = glGetUniformLocation(shader, "projection")
+
+        self.package_name = package_name
 
         glUseProgram(shader)
         glClearColor(0.0, 0.0, 0.0, 1)
@@ -222,7 +224,7 @@ class VirtualDepthCamera:
         # destructor
         glfw.terminate()
 
-    def urdf_traverse(self, data, description_package_folder, desired_links="all"):
+    def urdf_traverse(self, data, description_package_folder,package_name,desired_links="all"):
         # Traverse the URDF XML string and store the mesh filepath and origin point in a dict,
         #  link_name is key and the dict resemples ye old YAML file
         #
@@ -272,11 +274,10 @@ class VirtualDepthCamera:
             # link dict entry
             mesh_dict[link_] = dict()
             link_path_ = "//robot/link[@name='" + link_ + "']"
-
             # link/meshfile dict entry
             temp = root.xpath(link_path_ + "/collision/geometry/mesh")
             mesh_file = temp[0].attrib["filename"]
-            mesh_file = mesh_file.replace("package://arl_description/", "")
+            mesh_file = mesh_file.replace("package://"+package_name+"/", "")
             mesh_file = os.path.join(description_package_folder, mesh_file)
             mesh_dict[link_]["mesh_stl"] = mesh_file
 
