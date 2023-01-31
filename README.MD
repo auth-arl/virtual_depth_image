@@ -3,6 +3,8 @@
 ## Introducation 
 The Virtual Depth Camera (VDC) package **generates a virtual depth image** using a simple graphics pipeline in OpenGL, emulating the actual RGBD camera view _(in both intrisincs and extrisincs)_.
 
+This package works by default with the official [ur_description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/tree/ros2) and [realsense](https://github.com/IntelRealSense/realsense-ros) packages.
+
 The VDC can be used to 
 * generate **Occlusion Masks**, informing the vision system which pixels on an RGB or Depth image are occluded by the robot's geometry. 
   * This approach is suitable for top-down application, where objects or locations of interest **are expected to be behind the robot**, not in between the robot and the camera. 
@@ -42,15 +44,9 @@ Install the python dependencies, and you are good to go
 ## How to Run
 ### Available Launch Files
 Various launch file are available for demos and deployment:
-* `occlusion_mask.launch.py` is a minimal example on the vdc node and its configuration parameters
-* `offline_mask.launch.py` is an offline demo, that can help to verify installation. 
-  * **It needs no camera and no calibration**, as it launches its own dummy `camera_frame` and  `DummyCamera` node
-  * launch the `arl_description` and the `offline_demo` 
-  * You can see in the published images the rendered occlusion mask of the robot in its initialization configuration.
-* `online_demo.launch.py` is an online demo. It launches the VDC with the `viz_anabled=True` paramater that publishes a composite image of the mask superimposed to the camera view.  
-  * Launch all the necessary nodes (camera_node, description, TF_publisher) as per instructions.
-  * Launch some compliant robot controller as well if you want to see the virtual image in motion.  
-
+* `mask.launch.py`  render binary mask image of robot
+* `depth.launch.py` render virtual depth image of robot
+* `demo.launch.py` is an demo of depth.launch.py inluding the lauch of the ur_description and realsense camera packages
   
 ![](docs/composite.png)
 
@@ -65,33 +61,6 @@ _camera view and virtual mask composite image (available only in `online_demo.la
     ```
 2. Output message will confirm the `robot_description` and `CameraInfo` are acquired succesfully, and a list of the robot links will be printed. _(In case anything is missing see troubleshooting section)_
    1. If the node proceeds to run succesfully, that means that `camera_frame` is also acquired, and from there on no further messages will be printed. 
-  
-  ```commandline
-  [VIRTUAL_DEPTH_CAMERA] Starting Virtual Depth Camera Node: 
-  [VIRTUAL_DEPTH_CAMERA] ---------------INITIALIZATION---------------------
-  [VIRTUAL_DEPTH_CAMERA] INIT PROGRESS: 1/2 - Camera Info retrieved from topic
-  [VIRTUAL_DEPTH_CAMERA] INIT PROGRESS: 2/2 - Robot Description Received from robot_state_publisher
-  [VIRTUAL_DEPTH_CAMERA] ---------------INITIALIZATION---------------------
-  [VIRTUAL_DEPTH_CAMERA] 
-  [VIRTUAL_DEPTH_CAMERA] -------- Virtual Depth Camera Start --------------
-  [VIRTUAL_DEPTH_CAMERA] 
-  [VIRTUAL_DEPTH_CAMERA]  The Occlusion Mask will consist of the following links from the URDF file:
-  [VIRTUAL_DEPTH_CAMERA]    |   
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_base_link_inertia
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_shoulder_link
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_upper_arm_link
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_forearm_link
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_wrist_1_link
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_wrist_2_link
-  [VIRTUAL_DEPTH_CAMERA]    |   right_ur_wrist_3_link
-  [VIRTUAL_DEPTH_CAMERA]    |   epick_link
-  [VIRTUAL_DEPTH_CAMERA]    |   
-  [VIRTUAL_DEPTH_CAMERA]    |_______________________________________
-  [VIRTUAL_DEPTH_CAMERA] 
-  [VIRTUAL_DEPTH_CAMERA] -------- Virtual Depth Camera Start --------------
-  ```
-
-
 
 ## Parameters and Topics
 Here are the configuration ROS2 parameters that can be defined either in a dict() in launch, or in a separate .yaml file.
