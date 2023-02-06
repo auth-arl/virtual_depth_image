@@ -30,12 +30,8 @@ class GraphicObject():
         self.vertices = temp_mesh.vectors
 
         self.VAO = glGenVertexArrays(1)
-        # bind VAO to pass vertices
         glBindVertexArray(self.VAO)
-
-        # TODO: remove this from members.
-        #  VBO will most probably be automatically binded in VAO....
-        #  So no need to keepit as member.
+       
         self.VBO = glGenBuffers(1)
         glBindBuffer(GL_ARRAY_BUFFER, self.VBO)
         glBufferData(GL_ARRAY_BUFFER,
@@ -167,7 +163,6 @@ class VirtualDepthCamera:
 
         glUniformMatrix4fv(self.projection_loc, 1, GL_FALSE, projection_tf)
 
-        # correction TF that rotates camera around its z axis. IDK why, but for some reason OpenGL camera points ... backwards?
         fixed_tf = np.array([[1, 0, 0, 0], [0, -1, 0, 0], [0, 0, -1, 0], [0, 0, 0, 1]])
         glUniformMatrix4fv(self.fix_tf_loc, 1, GL_FALSE, fixed_tf)
 
@@ -192,7 +187,6 @@ class VirtualDepthCamera:
         return self.config_dict.keys()
 
     def run(self, model_tf_list):
-        # glfw.poll_events()  # Not needed, unless window is not hidden
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         for g_, m_tf_ in zip(self.graphics_object_list, model_tf_list):
             g_.draw(m_tf_)
