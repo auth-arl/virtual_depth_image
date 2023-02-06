@@ -201,24 +201,19 @@ class VirtualDepthCamera:
     def get_mask_image(self):
         img_buf = glReadPixels(0, 0, self.width, self.height, GL_LUMINANCE, GL_UNSIGNED_BYTE)
         img = np.frombuffer(img_buf, np.uint8).reshape(self.height, self.width, 1)[::-1]
-        # the indexing above is copy-pasted from the internet, have no idea why it should be the way is its,
-        # but without the image is returned broken, and have no idea how to fix it.
+
         return img
 
     def get_depth_image(self):
         img_buf = glReadPixels(0, 0, self.width, self.height, GL_DEPTH_COMPONENT, GL_FLOAT)
         z_b = np.frombuffer(img_buf, np.float32).reshape(self.height, self.width, 1)[::-1]
 
-        # Vodoo magic to get from gl to reality
         z_n = 2 * z_b -1 
         zNear = 0.1
         zFar = 10
-        z = 2 * zNear * zFar / ( zFar + zNear - z_n * (zFar - zNear))       
+        z = 2 * zNear * zFar / ( zFar + zNear - z_n * (zFar - zNear))        
 
-        img = z
-        # the indexing above is copy-pasted from the internet, have no idea why it should be the way is its,
-        # but without the image is returned broken, and have no idea how to fix it.
-        return img
+        return z
 
     def destroy_virtual_camera(self):
         # destructor
